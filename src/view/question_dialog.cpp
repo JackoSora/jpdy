@@ -143,6 +143,7 @@ void QuestionDialog::mark_correct() {
     
     int points = board->get_cell(current_row, current_col).get_points();
     game_controller->add_to_score(points);
+    game_controller->switch_to_next_team();
     close_dialog();
 }
 
@@ -152,6 +153,7 @@ void QuestionDialog::mark_incorrect() {
     
     int points = board->get_cell(current_row, current_col).get_points();
     game_controller->subtract_from_score(points);
+    game_controller->switch_to_next_team();
     close_dialog();
 }
 

@@ -18,8 +18,10 @@ add_executable(jpdy
         # Model files
         src/model/board.cpp
         src/model/cell.cpp
+        src/model/game_state.cpp
         include/model/board.h
         include/model/cell.h
+        include/model/team.h
         
         # Controller files
         src/controller/game_controller.cpp
@@ -30,10 +32,12 @@ add_executable(jpdy
         src/view/config_widget.cpp
         src/view/game_board_widget.cpp
         src/view/question_dialog.cpp
+        src/view/team_widget.cpp
         include/view/main_window.h
         include/view/config_widget.h
         include/view/game_board_widget.h
         include/view/question_dialog.h
+        include/view/team_widget.h
 )
 
 target_include_directories(jpdy PUBLIC

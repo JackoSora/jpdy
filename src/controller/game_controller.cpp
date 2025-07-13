@@ -1,54 +1,43 @@
 #include "controller/game_controller.h"
 
-GameController::GameController(QObject* parent) 
-    : QObject(parent), current_mode(GameMode::CONFIG), current_score(0) {
-    game_board = std::make_unique<board>(5, 6); 
+GameController::GameController(QObject* parent)
+    : QObject(parent) {
+    game_state = std::make_unique<GameState>();
 }
 
 void GameController::start_config_mode() {
-    current_mode = GameMode::CONFIG;
-    emit mode_changed(current_mode);
+    game_state->start_config_mode();
+    emit mode_changed(game_state->get_current_mode());
 }
 
 void GameController::start_game_mode() {
-    current_mode = GameMode::PLAYING;
-    current_score = 0;
-    game_board->reset_board();
-    emit mode_changed(current_mode);
-    emit score_changed(current_score);
+    game_state->start_game_mode();
+    emit mode_changed(game_state->get_current_mode());
+    emit score_changed(game_state->get_current_team_score());
+    emit team_changed(game_state->get_current_team());
 }
 
 GameMode GameController::get_current_mode() const {
-    return current_mode;
+    return game_state->get_current_mode();
 }
 
 void GameController::configure_board_size(size_t rows, size_t cols) {
-    if (current_mode == GameMode::CONFIG) {
-        game_board->resize_board(rows, cols);
-        emit board_changed();
-    }
+    game_state->configure_board_size(rows, cols);
+    emit board_changed();
 }
 
 void GameController::set_category_name(size_t col, const std::string& name) {
-    if (current_mode == GameMode::CONFIG) {
-        game_board->set_category(col, name);
-        emit board_changed();
-    }
+    game_state->set_category_name(col, name);
+    emit board_changed();
 }
 
 void GameController::set_question_answer(size_t row, size_t col, const std::string& question, const std::string& answer) {
-    if (current_mode == GameMode::CONFIG) {
-        game_board->set_cell_content(row, col, question, answer);
-        emit board_changed();
-    }
+    game_state->set_question_answer(row, col, question, answer);
+    emit board_changed();
 }
 
 bool GameController::select_cell(size_t row, size_t col) {
-    if (current_mode == GameMode::PLAYING && 
-        game_board->is_valid_position(row, col) && 
-        !game_board->get_cell(row, col).get_is_revealed()) {
-        
-        game_board->reveal_cell(row, col);
+    if (game_state->select_cell(row, col)) {
         emit cell_selected(row, col);
         return true;
     }
@@ -56,28 +45,48 @@ bool GameController::select_cell(size_t row, size_t col) {
 }
 
 void GameController::add_to_score(int points) {
-    current_score += points;
-    emit score_changed(current_score);
+    game_state->add_to_current_team_score(points);
+    emit score_changed(game_state->get_current_team_score());
 }
 
 void GameController::subtract_from_score(int points) {
-    current_score -= points;
-    emit score_changed(current_score);
+    game_state->subtract_from_current_team_score(points);
+    emit score_changed(game_state->get_current_team_score());
 }
 
-int GameController::get_score() const {
-    return current_score;
+int GameController::get_current_team_score() const {
+    return game_state->get_current_team_score();
 }
 
 void GameController::reset_game() {
-    current_score = 0;
-    game_board->reset_board();
-    emit score_changed(current_score);
+    game_state->reset_game();
+    emit score_changed(game_state->get_current_team_score());
     emit board_changed();
+    emit team_changed(game_state->get_current_team());
 }
 
 const board* GameController::get_board() const {
-    return game_board.get();
+    return game_state->get_board();
 }
 
-#include "game_controller.moc"
+const std::vector<team>& GameController::get_teams() const {
+    return game_state->get_teams();
+}
+
+const team& GameController::get_current_team() const {
+    return game_state->get_current_team();
+}
+
+bool GameController::add_team(const std::string& team_name) {
+    return game_state->add_team(team_name);
+}
+
+void GameController::switch_to_next_team() {
+    game_state->switch_to_next_team();
+    emit team_changed(game_state->get_current_team());
+}
+
+void GameController::set_team_name(size_t team_index, const std::string& new_name) {
+    game_state->set_team_name(team_index, new_name);
+    emit team_changed(game_state->get_current_team());
+}

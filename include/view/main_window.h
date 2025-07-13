@@ -17,6 +17,7 @@
 class ConfigWidget;
 class GameBoardWidget;
 class QuestionDialog;
+class TeamWidget;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -27,6 +28,7 @@ private:
     ConfigWidget* config_widget;
     GameBoardWidget* game_board_widget;
     QuestionDialog* question_dialog;
+    TeamWidget* team_widget;
     
     QLabel* score_label;
     QPushButton* mode_toggle_button;
@@ -47,4 +49,4 @@ private slots:
     void show_question_dialog(size_t row, size_t col);
 };
 
-#endif 
+#endif

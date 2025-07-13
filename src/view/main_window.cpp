@@ -2,17 +2,19 @@
 #include "view/config_widget.h"
 #include "view/game_board_widget.h"
 #include "view/question_dialog.h"
+#include "view/team_widget.h"
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent), game_controller(nullptr), stacked_widget(nullptr),
       config_widget(nullptr), game_board_widget(nullptr), question_dialog(nullptr),
-      score_label(nullptr), mode_toggle_button(nullptr) {
+      team_widget(nullptr), score_label(nullptr), mode_toggle_button(nullptr) {
     
     setStyleSheet("background-color: #1a1a2e; color: white;");
     resize(1200, 800);
     setWindowTitle("Jacko's Jeopardy");
     
     game_controller = new GameController(this);
+    team_widget = new TeamWidget(game_controller, this);   
     setup_ui();
     setup_menu();
     create_widgets();
@@ -24,7 +26,6 @@ void MainWindow::setup_ui() {
     setCentralWidget(central_widget);
     
     QVBoxLayout* main_layout = new QVBoxLayout(central_widget);
-    
     
     QHBoxLayout* status_layout = new QHBoxLayout;
     
@@ -43,11 +44,18 @@ void MainWindow::setup_ui() {
     status_layout->addStretch();
     status_layout->addWidget(mode_toggle_button);
     
+    QHBoxLayout* content_layout = new QHBoxLayout;
     
     stacked_widget = new QStackedWidget;
     
+    team_widget->setMaximumWidth(250);
+    team_widget->setStyleSheet("background-color: #16213e; border: 1px solid #0f3460; border-radius: 8px;");
+    
+    content_layout->addWidget(stacked_widget, 3);  
+    content_layout->addWidget(team_widget, 1);     
+    
     main_layout->addLayout(status_layout);
-    main_layout->addWidget(stacked_widget);
+    main_layout->addLayout(content_layout);
 }
 
 void MainWindow::setup_menu() {
@@ -86,15 +94,24 @@ void MainWindow::create_widgets() {
     stacked_widget->addWidget(config_widget);
     stacked_widget->addWidget(game_board_widget);
     
-    
+    // Set initial widget
     stacked_widget->setCurrentWidget(config_widget);
 }
 
 void MainWindow::setup_connections() {
     connect(game_controller, &GameController::mode_changed, this, &MainWindow::on_mode_changed);
     connect(game_controller, &GameController::score_changed, this, &MainWindow::on_score_changed);
+    connect(game_controller, &GameController::team_changed, [this](const team& current_team) {
+        on_score_changed(current_team.get_score());
+    });
     connect(mode_toggle_button, &QPushButton::clicked, this, &MainWindow::toggle_mode);
     connect(game_board_widget, &GameBoardWidget::cell_selected, this, &MainWindow::show_question_dialog);
+    
+    connect(game_controller, &GameController::score_changed, [this](int) {
+        if (team_widget->isVisible()) {
+            team_widget->on_teams_updated();
+        }
+    });
 }
 
 void MainWindow::on_mode_changed(GameMode new_mode) {
@@ -103,17 +120,21 @@ void MainWindow::on_mode_changed(GameMode new_mode) {
             stacked_widget->setCurrentWidget(config_widget);
             mode_toggle_button->setText("Start Game");
             score_label->setVisible(false);
+            team_widget->setVisible(false);
             break;
         case GameMode::PLAYING:
             stacked_widget->setCurrentWidget(game_board_widget);
             mode_toggle_button->setText("Configure Board");
             score_label->setVisible(true);
+            team_widget->setVisible(true);
+            team_widget->update_teams();  // Refresh team display when game starts
             break;
     }
 }
 
 void MainWindow::on_score_changed(int new_score) {
-    score_label->setText(QString("Score: %1").arg(new_score));
+    const team& current_team = game_controller->get_current_team();
+    score_label->setText(QString("%1: $%2").arg(QString::fromStdString(current_team.get_name())).arg(new_score));
 }
 
 void MainWindow::toggle_mode() {
