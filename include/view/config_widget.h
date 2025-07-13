@@ -33,6 +33,7 @@ private:
     void create_size_controls();
     void rebuild_config_grid();
     void clear_config_grid();
+    void update_cell_button_style(size_t row, size_t col);
 
 public:
     explicit ConfigWidget(GameController* controller, QWidget* parent = nullptr);
@@ -61,6 +62,9 @@ private:
 public:
     explicit CellEditDialog(GameController* controller, size_t row, size_t col, QWidget* parent = nullptr);
     ~CellEditDialog() = default;
+
+signals:
+    void cell_updated();
 
 private slots:
     void save_cell();

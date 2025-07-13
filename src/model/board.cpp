@@ -13,8 +13,8 @@ board::board(size_t rows, size_t cols) : rows(rows), cols(cols) {
     for (size_t row = 0; row < rows; ++row) {
         for (size_t col = 0; col < cols; ++col) {
             cells[row][col].set_points(get_cell_points(row));
-            cells[row][col].set_question("Default question for " + std::to_string((row + 1) * 100) + " points");
-            cells[row][col].set_answer("Default answer for " + std::to_string((row + 1) * 100) + " points");
+            cells[row][col].set_question(" ");
+            cells[row][col].set_answer(" ");
         }
     }
 }

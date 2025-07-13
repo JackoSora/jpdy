@@ -55,6 +55,8 @@ void ConfigWidget::create_size_controls() {
     size_layout->addWidget(rows_label);
     size_layout->addWidget(rows_spinbox);
     size_layout->addWidget(cols_label);
+    cols_spinbox->setStyleSheet("QSpinBox { background-color: #16213e; color: #ffd700; border: 2px solid #0f3460; "
+                                 "padding: 8px; font-weight: bold; font-size: 14px; }");
     size_layout->addWidget(cols_spinbox);
     size_layout->addWidget(apply_size_button);
     size_layout->addStretch();
@@ -95,25 +97,63 @@ void ConfigWidget::rebuild_config_grid() {
         for (size_t col = 0; col < cols; ++col) {
             QPushButton* edit_button = new QPushButton(QString("Edit\n$%1").arg(board->get_cell_points(row)));
             edit_button->setMinimumSize(120, 80);
-            edit_button->setStyleSheet(
-                "QPushButton { background-color: #16213e; color: white; border: 2px solid #0f3460; "
-                "border-radius: 5px; font-weight: bold; }"
-                "QPushButton:hover { background-color: #0f3460; }"
-            );
             
             cell_edit_buttons[row][col] = edit_button;
             config_grid_layout->addWidget(edit_button, static_cast<int>(row + 1), static_cast<int>(col));
             
             connect(edit_button, &QPushButton::clicked, 
                     [this, row, col]() { edit_cell(static_cast<int>(row), static_cast<int>(col)); });
+            
+            // Update the button style based on cell content
+            update_cell_button_style(row, col);
         }
+    }
+}
+
+void ConfigWidget::update_cell_button_style(size_t row, size_t col) {
+    const board* board = game_controller->get_board();
+    if (!board || row >= cell_edit_buttons.size() || col >= cell_edit_buttons[row].size()) {
+        return;
+    }
+    
+    const cell& current_cell = board->get_cell(row, col);
+    QPushButton* button = cell_edit_buttons[row][col];
+    
+    QString question = QString::fromStdString(current_cell.get_question()).trimmed();
+    QString answer = QString::fromStdString(current_cell.get_answer()).trimmed();
+    
+    bool has_question = !question.isEmpty();
+    bool has_answer = !answer.isEmpty();
+    
+    QString base_style = 
+        "QPushButton { color: white; border-radius: 5px; font-weight: bold; }";
+    
+    QString hover_style = "QPushButton:hover { background-color: #0f3460; }";
+    
+    if (has_question && has_answer) {
+        // Green border and background for complete cells (question + answer)
+        button->setStyleSheet(base_style + 
+            "QPushButton { background-color: #1a4d1a; "
+            "border: 3px solid #00ff00; }" + hover_style);
+    } else if (has_question) {
+        // Purple border and background for cells with only question
+        button->setStyleSheet(base_style + 
+            "QPushButton { background-color: #4d1a4d; "
+            "border: 3px solid #8a2be2; }" + hover_style);
+    } else {
+        // Default style for empty cells
+        button->setStyleSheet(base_style + 
+            "QPushButton { background-color: #16213e; "
+            "border: 2px solid #0f3460; }" + hover_style);
     }
 }
 
 void ConfigWidget::clear_config_grid() {
     QLayoutItem* item;
     while ((item = config_grid_layout->takeAt(0)) != nullptr) {
-        delete item->widget();
+        if (QWidget* widget = item->widget()) {
+            delete widget;
+        }
         delete item;
     }
     category_inputs.clear();
@@ -129,6 +169,11 @@ void ConfigWidget::apply_board_size() {
 void ConfigWidget::edit_cell(int row, int col) {
     CellEditDialog* dialog = new CellEditDialog(game_controller, static_cast<size_t>(row), static_cast<size_t>(col), this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
+    
+    // Connect to update the cell appearance when dialog is closed/saved
+    connect(dialog, &CellEditDialog::cell_updated, 
+            [this, row, col]() { update_cell_button_style(static_cast<size_t>(row), static_cast<size_t>(col)); });
+    
     dialog->show();
 }
 
@@ -199,6 +244,7 @@ void CellEditDialog::save_cell() {
     std::string question = question_edit->toPlainText().toStdString();
     std::string answer = answer_edit->toPlainText().toStdString();
     game_controller->set_question_answer(row, col, question, answer);
+    emit cell_updated();  
     close();
 }
 
