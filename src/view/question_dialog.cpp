@@ -3,7 +3,7 @@
 
 QuestionDialog::QuestionDialog(GameController* controller, QWidget* parent)
     : QDialog(parent), game_controller(controller), current_row(0), current_col(0), 
-      answer_shown(false), animation_manager(nullptr), transition_manager(nullptr) {
+      answer_shown(false), point_stealing_mode(false), animation_manager(nullptr), transition_manager(nullptr) {
     setup_ui();
     setup_managers();
     setModal(true);
@@ -137,6 +137,7 @@ void QuestionDialog::enable_buttons(bool enabled) {
 
 void QuestionDialog::reset_ui_state() {
     answer_shown = false;
+    point_stealing_mode = false;
     
     // Reset UI components
     show_answer_button->setVisible(true);
@@ -171,9 +172,12 @@ void QuestionDialog::show_question(size_t row, size_t col) {
     if (!board) return;
     
     const cell& game_cell = board->get_cell(row, col);
+    const team& current_team = game_controller->get_current_team();
     
     points_label->setText(QString("$%1").arg(game_cell.get_points()));
-    category_label->setText(QString("Category: %1").arg(QString::fromStdString(board->get_category(col))));
+    category_label->setText(QString("Category: %1 - %2's Turn")
+                            .arg(QString::fromStdString(board->get_category(col)))
+                            .arg(QString::fromStdString(current_team.get_name())));
     question_display->setText(QString::fromStdString(game_cell.get_question()));
 }
 
@@ -259,19 +263,48 @@ void QuestionDialog::execute_correct_action() {
     }
 }
 
+void QuestionDialog::setup_for_next_team() {
+    // Update the display for the new team attempting the question
+    const team& current_team = game_controller->get_current_team();
+    category_label->setText(QString("Category: %1 - %2's Turn to Steal!")
+                            .arg(QString::fromStdString(game_controller->get_board()->get_category(current_col)))
+                            .arg(QString::fromStdString(current_team.get_name())));
+    
+    // Reset answer display state - new team shouldn't see the answer yet
+    answer_shown = false;
+    answer_display->setVisible(false);
+    show_answer_button->setVisible(true);
+    show_answer_button->setEnabled(true);
+    correct_button->setVisible(false);
+    incorrect_button->setVisible(false);
+    
+    // Re-enable buttons
+    enable_buttons(true);
+}
+
 void QuestionDialog::execute_incorrect_action() {
     const board* board = game_controller->get_board();
     if (!board) return;
     
     int points = board->get_cell(current_row, current_col).get_points();
     game_controller->subtract_from_score(points);
-    game_controller->switch_to_next_team();
+    game_controller->mark_current_team_attempted(current_row, current_col);
     
-    // Start fade-out transition
-    if (transition_manager) {
-        transition_manager->fade_out_and_close();
+    // Check if there are other teams that can attempt this question
+    if (game_controller->switch_to_next_available_team(current_row, current_col)) {
+        // Point stealing: setup for next team
+        point_stealing_mode = true;
+        setup_for_next_team();
     } else {
-        close_dialog();
+        // No more teams can attempt, close the question
+        game_controller->switch_to_next_team();  // Move to next team for next question
+        
+        // Start fade-out transition
+        if (transition_manager) {
+            transition_manager->fade_out_and_close();
+        } else {
+            close_dialog();
+        }
     }
 }
 

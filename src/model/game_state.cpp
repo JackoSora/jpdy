@@ -103,3 +103,50 @@ void GameState::set_team_name(size_t team_index, const std::string& new_name) {
 void GameState::reset_game() {
     start_game_mode();
 }
+
+// Point stealing functionality
+bool GameState::can_current_team_attempt(size_t row, size_t col) const {
+    if (current_mode != GameMode::PLAYING || !game_board->is_valid_position(row, col)) {
+        return false;
+    }
+    
+    const cell& game_cell = game_board->get_cell(row, col);
+    return !game_cell.has_team_attempted(current_team_index);
+}
+
+void GameState::mark_current_team_attempted(size_t row, size_t col) {
+    if (current_mode == GameMode::PLAYING && game_board->is_valid_position(row, col)) {
+        get_cell_mutable(row, col).add_attempted_team(current_team_index);
+    }
+}
+
+bool GameState::switch_to_next_available_team(size_t row, size_t col) {
+    if (current_mode != GameMode::PLAYING || !game_board->is_valid_position(row, col)) {
+        return false;
+    }
+    
+    const cell& game_cell = game_board->get_cell(row, col);
+    size_t original_team = current_team_index;
+    
+    // Try each team to find one that hasn't attempted this question
+    for (size_t i = 0; i < teams.size(); ++i) {
+        switch_to_next_team();
+        if (!game_cell.has_team_attempted(current_team_index)) {
+            return true;  // Found a team that can attempt
+        }
+        if (current_team_index == original_team) {
+            break;  // We've cycled through all teams
+        }
+    }
+    
+    return false;  // No team available to attempt
+}
+
+size_t GameState::get_current_team_index() const {
+    return current_team_index;
+}
+
+// Helper method to get mutable cell reference
+cell& GameState::get_cell_mutable(size_t row, size_t col) {
+    return game_board->get_cell(row, col);
+}

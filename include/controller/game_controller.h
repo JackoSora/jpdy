@@ -39,6 +39,12 @@ public:
     bool add_team(const std::string& team_name);
     void switch_to_next_team();
     void set_team_name(size_t team_index, const std::string& new_name);
+    
+    // Point stealing functionality  
+    bool can_current_team_attempt(size_t row, size_t col) const;
+    void mark_current_team_attempted(size_t row, size_t col);
+    bool switch_to_next_available_team(size_t row, size_t col);
+    [[nodiscard]] size_t get_current_team_index() const;
 
 signals:
     void board_changed();
