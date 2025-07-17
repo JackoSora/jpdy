@@ -1,10 +1,41 @@
 #include "view/question_dialog.h"
+#include <stdexcept>
 
 QuestionDialog::QuestionDialog(GameController* controller, QWidget* parent)
-    : QDialog(parent), game_controller(controller), current_row(0), current_col(0), answer_shown(false) {
+    : QDialog(parent), game_controller(controller), current_row(0), current_col(0), 
+      answer_shown(false), animation_manager(nullptr), transition_manager(nullptr) {
     setup_ui();
+    setup_managers();
     setModal(true);
     setStyleSheet("background-color: #1a1a2e; color: white;");
+}
+
+QuestionDialog::~QuestionDialog() {
+    if (animation_manager) {
+        animation_manager->cleanup_animations();
+        delete animation_manager;
+    }
+    if (transition_manager) {
+        delete transition_manager;
+    }
+}
+
+void QuestionDialog::setup_managers() {
+    // Create animation manager
+    animation_manager = new AnimationManager(this, this);
+    
+    // Create transition manager
+    transition_manager = new DialogTransitionManager(this, this);
+    
+    // Connect animation signals
+    connect(animation_manager, &AnimationManager::correct_animation_finished,
+            this, &QuestionDialog::on_correct_animation_finished);
+    connect(animation_manager, &AnimationManager::incorrect_animation_finished,
+            this, &QuestionDialog::on_incorrect_animation_finished);
+    
+    // Connect transition signals
+    connect(transition_manager, &DialogTransitionManager::transition_finished,
+            this, &QuestionDialog::on_transition_finished);
 }
 
 void QuestionDialog::setup_ui() {
@@ -98,11 +129,44 @@ void QuestionDialog::setup_ui() {
     connect(close_button, &QPushButton::clicked, this, &QuestionDialog::close_dialog);
 }
 
+void QuestionDialog::enable_buttons(bool enabled) {
+    correct_button->setEnabled(enabled);
+    incorrect_button->setEnabled(enabled);
+    close_button->setEnabled(enabled);
+}
+
+void QuestionDialog::reset_ui_state() {
+    answer_shown = false;
+    
+    // Reset UI components
+    show_answer_button->setVisible(true);
+    show_answer_button->setEnabled(true);
+    answer_display->setVisible(false);
+    correct_button->setVisible(false);
+    incorrect_button->setVisible(false);
+    
+    // Ensure buttons are enabled
+    enable_buttons(true);
+}
+
 void QuestionDialog::show_question(size_t row, size_t col) {
     current_row = row;
     current_col = col;
-    answer_shown = false;
     
+    // Clean up any running animations and reset state
+    if (animation_manager) {
+        animation_manager->cleanup_animations();
+    }
+    
+    // Reset dialog opacity
+    if (transition_manager) {
+        transition_manager->reset_opacity();
+    }
+    
+    // Reset UI state
+    reset_ui_state();
+    
+    // Load question data
     const board* board = game_controller->get_board();
     if (!board) return;
     
@@ -110,13 +174,7 @@ void QuestionDialog::show_question(size_t row, size_t col) {
     
     points_label->setText(QString("$%1").arg(game_cell.get_points()));
     category_label->setText(QString("Category: %1").arg(QString::fromStdString(board->get_category(col))));
-    
     question_display->setText(QString::fromStdString(game_cell.get_question()));
-    
-    show_answer_button->setVisible(true);
-    answer_display->setVisible(false);
-    correct_button->setVisible(false);
-    incorrect_button->setVisible(false);
 }
 
 void QuestionDialog::show_answer() {
@@ -138,22 +196,86 @@ void QuestionDialog::show_answer() {
 }
 
 void QuestionDialog::mark_correct() {
+    if (!animation_manager || animation_manager->is_animation_in_progress()) return;
+    
+    // Disable buttons during animation
+    enable_buttons(false);
+    
+    // Get points for animation
+    const board* board = game_controller->get_board();
+    int points = board ? board->get_cell(current_row, current_col).get_points() : 0;
+    
+    try {
+        animation_manager->play_correct_animation(points);
+    } catch (const std::exception& e) {
+        qWarning("Animation failed, falling back to immediate action: %s", e.what());
+        enable_buttons(true);
+        execute_correct_action();
+    }
+}
+
+void QuestionDialog::mark_incorrect() {
+    if (!animation_manager || animation_manager->is_animation_in_progress()) return;
+    
+    // Disable buttons during animation
+    enable_buttons(false);
+    
+    // Get points for animation
+    const board* board = game_controller->get_board();
+    int points = board ? board->get_cell(current_row, current_col).get_points() : 0;
+    
+    try {
+        animation_manager->play_incorrect_animation(points);
+    } catch (const std::exception& e) {
+        qWarning("Animation failed, falling back to immediate action: %s", e.what());
+        enable_buttons(true);
+        execute_incorrect_action();
+    }
+}
+
+void QuestionDialog::on_correct_animation_finished() {
+    enable_buttons(true);
+    execute_correct_action();
+}
+
+void QuestionDialog::on_incorrect_animation_finished() {
+    enable_buttons(true);
+    execute_incorrect_action();
+}
+
+void QuestionDialog::execute_correct_action() {
     const board* board = game_controller->get_board();
     if (!board) return;
     
     int points = board->get_cell(current_row, current_col).get_points();
     game_controller->add_to_score(points);
     game_controller->switch_to_next_team();
-    close_dialog();
+    
+    // Start fade-out transition
+    if (transition_manager) {
+        transition_manager->fade_out_and_close();
+    } else {
+        close_dialog();
+    }
 }
 
-void QuestionDialog::mark_incorrect() {
+void QuestionDialog::execute_incorrect_action() {
     const board* board = game_controller->get_board();
     if (!board) return;
     
     int points = board->get_cell(current_row, current_col).get_points();
     game_controller->subtract_from_score(points);
     game_controller->switch_to_next_team();
+    
+    // Start fade-out transition
+    if (transition_manager) {
+        transition_manager->fade_out_and_close();
+    } else {
+        close_dialog();
+    }
+}
+
+void QuestionDialog::on_transition_finished() {
     close_dialog();
 }
 
