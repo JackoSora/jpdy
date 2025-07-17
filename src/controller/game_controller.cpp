@@ -90,3 +90,32 @@ void GameController::set_team_name(size_t team_index, const std::string& new_nam
     game_state->set_team_name(team_index, new_name);
     emit team_changed(game_state->get_current_team());
 }
+
+// Point stealing functionality
+bool GameController::can_current_team_attempt(size_t row, size_t col) const {
+    return game_state->can_current_team_attempt(row, col);
+}
+
+void GameController::mark_current_team_attempted(size_t row, size_t col) {
+    game_state->mark_current_team_attempted(row, col);
+}
+
+bool GameController::switch_to_next_available_team(size_t row, size_t col) {
+    bool has_next_team = game_state->switch_to_next_available_team(row, col);
+    if (has_next_team) {
+        emit team_changed(game_state->get_current_team());
+    }
+    return has_next_team;
+}
+
+size_t GameController::get_current_team_index() const {
+    return game_state->get_current_team_index();
+}
+
+bool GameController::is_question_in_progress(size_t row, size_t col) const {
+    return game_state->is_question_in_progress(row, col);
+}
+
+void GameController::complete_question(size_t row, size_t col) {
+    game_state->complete_question(row, col);
+}

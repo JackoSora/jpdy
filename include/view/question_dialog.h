@@ -17,6 +17,7 @@ private:
     GameController* game_controller;
     size_t current_row, current_col;
     bool answer_shown;
+    bool point_stealing_mode;  // Track if we're in stealing mode
     
     // UI components
     QVBoxLayout* main_layout;
@@ -43,6 +44,7 @@ private:
     // Game logic execution
     void execute_correct_action();
     void execute_incorrect_action();
+    void setup_for_next_team();  // Setup for next team in stealing mode
 
 public:
     explicit QuestionDialog(GameController* controller, QWidget* parent = nullptr);
