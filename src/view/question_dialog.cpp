@@ -253,6 +253,7 @@ void QuestionDialog::execute_correct_action() {
     
     int points = board->get_cell(current_row, current_col).get_points();
     game_controller->add_to_score(points);
+    game_controller->complete_question(current_row, current_col);  // Mark question as completed
     game_controller->switch_to_next_team();
     
     // Start fade-out transition
@@ -297,6 +298,7 @@ void QuestionDialog::execute_incorrect_action() {
         setup_for_next_team();
     } else {
         // No more teams can attempt, close the question
+        game_controller->complete_question(current_row, current_col);  // Mark question as completed
         game_controller->switch_to_next_team();  // Move to next team for next question
         
         // Start fade-out transition

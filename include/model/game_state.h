@@ -53,6 +53,8 @@ public:
     void mark_current_team_attempted(size_t row, size_t col);
     bool switch_to_next_available_team(size_t row, size_t col);
     [[nodiscard]] size_t get_current_team_index() const;
+    bool is_question_in_progress(size_t row, size_t col) const;
+    void complete_question(size_t row, size_t col);  // Mark question as fully completed
 
 private:
     // Helper method to get mutable cell reference

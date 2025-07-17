@@ -48,9 +48,13 @@ const board* GameState::get_board() const {
 }
 
 bool GameState::select_cell(size_t row, size_t col) {
-    if (current_mode == GameMode::PLAYING && game_board->is_valid_position(row, col) && !game_board->get_cell(row, col).get_is_revealed()) {
-        game_board->reveal_cell(row, col);
-        return true;
+    if (current_mode == GameMode::PLAYING && game_board->is_valid_position(row, col)) {
+        const cell& game_cell = game_board->get_cell(row, col);
+        // Allow selection if cell is not revealed and not currently in progress
+        if (!game_cell.get_is_revealed() && !is_question_in_progress(row, col)) {
+            // Don't mark as revealed yet - only mark when question is completely finished
+            return true;
+        }
     }
     return false;
 }
@@ -125,6 +129,11 @@ bool GameState::switch_to_next_available_team(size_t row, size_t col) {
         return false;
     }
     
+    // If there's only one team, no point stealing is possible
+    if (teams.size() <= 1) {
+        return false;
+    }
+    
     const cell& game_cell = game_board->get_cell(row, col);
     size_t original_team = current_team_index;
     
@@ -149,4 +158,20 @@ size_t GameState::get_current_team_index() const {
 // Helper method to get mutable cell reference
 cell& GameState::get_cell_mutable(size_t row, size_t col) {
     return game_board->get_cell(row, col);
+}
+
+bool GameState::is_question_in_progress(size_t row, size_t col) const {
+    if (!game_board->is_valid_position(row, col)) {
+        return false;
+    }
+    
+    const cell& game_cell = game_board->get_cell(row, col);
+    // Question is in progress if some teams have attempted but it's not revealed
+    return !game_cell.get_attempted_teams().empty() && !game_cell.get_is_revealed();
+}
+
+void GameState::complete_question(size_t row, size_t col) {
+    if (current_mode == GameMode::PLAYING && game_board->is_valid_position(row, col)) {
+        game_board->reveal_cell(row, col);
+    }
 }

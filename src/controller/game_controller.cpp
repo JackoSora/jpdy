@@ -111,3 +111,11 @@ bool GameController::switch_to_next_available_team(size_t row, size_t col) {
 size_t GameController::get_current_team_index() const {
     return game_state->get_current_team_index();
 }
+
+bool GameController::is_question_in_progress(size_t row, size_t col) const {
+    return game_state->is_question_in_progress(row, col);
+}
+
+void GameController::complete_question(size_t row, size_t col) {
+    game_state->complete_question(row, col);
+}
