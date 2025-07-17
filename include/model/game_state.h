@@ -47,6 +47,20 @@ public:
     [[nodiscard]] const team& get_current_team() const;
     [[nodiscard]] const std::vector<team>& get_teams() const;
     void set_team_name(size_t team_index, const std::string& new_name);
+    
+    // Point stealing functionality
+    bool can_current_team_attempt(size_t row, size_t col) const;
+    void mark_current_team_attempted(size_t row, size_t col);
+    bool switch_to_next_available_team(size_t row, size_t col);
+    [[nodiscard]] size_t get_current_team_index() const;
+    bool is_question_in_progress(size_t row, size_t col) const;
+    void complete_question(size_t row, size_t col);  // Mark question as fully completed
+
+private:
+    // Helper method to get mutable cell reference
+    cell& get_cell_mutable(size_t row, size_t col);
+
+public:
 
     // Game reset
     void reset_game();

@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <string>
+#include <set>
 
 class cell {
 private:
@@ -8,6 +9,7 @@ private:
     std::string answer;
     bool is_revealed;
     int points;
+    std::set<size_t> attempted_teams;  // Track which teams have attempted this question
 
 public:
     cell(): is_revealed(false), points(0) {};
@@ -23,6 +25,12 @@ public:
     [[nodiscard]] const std::string& get_answer() const;
     [[nodiscard]] int get_points() const;
     [[nodiscard]] bool get_is_revealed() const;
+    
+    // Team attempt tracking
+    void add_attempted_team(size_t team_index);
+    [[nodiscard]] bool has_team_attempted(size_t team_index) const;
+    [[nodiscard]] const std::set<size_t>& get_attempted_teams() const;
+    void clear_attempted_teams();
     
     void reveal();
     void reset();
