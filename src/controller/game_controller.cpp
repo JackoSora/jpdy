@@ -118,4 +118,5 @@ bool GameController::is_question_in_progress(size_t row, size_t col) const {
 
 void GameController::complete_question(size_t row, size_t col) {
     game_state->complete_question(row, col);
+    emit board_changed();
 }
