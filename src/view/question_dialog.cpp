@@ -179,6 +179,17 @@ void QuestionDialog::show_question(size_t row, size_t col) {
                             .arg(QString::fromStdString(board->get_category(col)))
                             .arg(QString::fromStdString(current_team.get_name())));
     question_display->setText(QString::fromStdString(game_cell.get_question()));
+    
+    // Check if answer is already revealed for this question
+    if (game_cell.is_answer_revealed()) {
+        // Answer was already revealed, show it immediately
+        answer_display->setText(QString::fromStdString(game_cell.get_answer()));
+        answer_display->setVisible(true);
+        show_answer_button->setVisible(false);
+        correct_button->setVisible(true);
+        incorrect_button->setVisible(true);
+        answer_shown = true;
+    }
 }
 
 void QuestionDialog::show_answer() {
@@ -197,6 +208,9 @@ void QuestionDialog::show_answer() {
     incorrect_button->setVisible(true);
     
     answer_shown = true;
+    
+    // Mark answer as revealed in the cell
+    game_controller->mark_answer_revealed(current_row, current_col);
 }
 
 void QuestionDialog::mark_correct() {
@@ -271,13 +285,26 @@ void QuestionDialog::setup_for_next_team() {
                             .arg(QString::fromStdString(game_controller->get_board()->get_category(current_col)))
                             .arg(QString::fromStdString(current_team.get_name())));
     
-    // Reset answer display state - new team shouldn't see the answer yet
-    answer_shown = false;
-    answer_display->setVisible(false);
-    show_answer_button->setVisible(true);
-    show_answer_button->setEnabled(true);
-    correct_button->setVisible(false);
-    incorrect_button->setVisible(false);
+    // Check if answer was already revealed for this question
+    const board* board = game_controller->get_board();
+    const cell& game_cell = board->get_cell(current_row, current_col);
+    
+    if (game_cell.is_answer_revealed()) {
+        // Answer was already revealed, keep it visible
+        answer_shown = true;
+        answer_display->setVisible(true);
+        show_answer_button->setVisible(false);
+        correct_button->setVisible(true);
+        incorrect_button->setVisible(true);
+    } else {
+        // Answer hasn't been revealed yet, reset state
+        answer_shown = false;
+        answer_display->setVisible(false);
+        show_answer_button->setVisible(true);
+        show_answer_button->setEnabled(true);
+        correct_button->setVisible(false);
+        incorrect_button->setVisible(false);
+    }
     
     // Re-enable buttons
     enable_buttons(true);

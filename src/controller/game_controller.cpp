@@ -120,3 +120,7 @@ void GameController::complete_question(size_t row, size_t col) {
     game_state->complete_question(row, col);
     emit board_changed();
 }
+
+void GameController::mark_answer_revealed(size_t row, size_t col) {
+    game_state->mark_answer_revealed(row, col);
+}

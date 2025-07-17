@@ -39,6 +39,7 @@ void cell::reveal() {
 void cell::reset() {
     this->is_revealed = false;
     this->attempted_teams.clear();
+    this->answer_revealed = false;
 }
 
 // Team attempt tracking methods
@@ -56,5 +57,14 @@ const std::set<size_t>& cell::get_attempted_teams() const {
 
 void cell::clear_attempted_teams() {
     attempted_teams.clear();
+}
+
+// Answer revelation tracking methods
+void cell::set_answer_revealed(bool revealed) {
+    answer_revealed = revealed;
+}
+
+bool cell::is_answer_revealed() const {
+    return answer_revealed;
 }
 

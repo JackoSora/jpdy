@@ -175,3 +175,9 @@ void GameState::complete_question(size_t row, size_t col) {
         game_board->reveal_cell(row, col);
     }
 }
+
+void GameState::mark_answer_revealed(size_t row, size_t col) {
+    if (current_mode == GameMode::PLAYING && game_board->is_valid_position(row, col)) {
+        get_cell_mutable(row, col).set_answer_revealed(true);
+    }
+}

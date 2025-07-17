@@ -55,6 +55,7 @@ public:
     [[nodiscard]] size_t get_current_team_index() const;
     bool is_question_in_progress(size_t row, size_t col) const;
     void complete_question(size_t row, size_t col);  // Mark question as fully completed
+    void mark_answer_revealed(size_t row, size_t col);  // Mark answer as revealed
 
 private:
     // Helper method to get mutable cell reference
