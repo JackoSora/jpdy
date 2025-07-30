@@ -181,22 +181,26 @@ void QuestionDialog::show_question(size_t row, size_t col) {
     question_display->setText(QString::fromStdString(game_cell.get_question()));
 }
 
-void QuestionDialog::show_answer() {
+void QuestionDialog::reveal_answer() {
     if (answer_shown) return;
-    
+
     const board* board = game_controller->get_board();
     if (!board) return;
-    
+
     const cell& game_cell = board->get_cell(current_row, current_col);
-    
+
     answer_display->setText(QString::fromStdString(game_cell.get_answer()));
     answer_display->setVisible(true);
-    
+
     show_answer_button->setVisible(false);
+
+    answer_shown = true;
+}
+
+void QuestionDialog::show_answer() {
+    reveal_answer();
     correct_button->setVisible(true);
     incorrect_button->setVisible(true);
-    
-    answer_shown = true;
 }
 
 void QuestionDialog::mark_correct() {
@@ -250,10 +254,14 @@ void QuestionDialog::on_incorrect_animation_finished() {
 void QuestionDialog::execute_correct_action() {
     const board* board = game_controller->get_board();
     if (!board) return;
-    
+
     int points = board->get_cell(current_row, current_col).get_points();
     game_controller->add_to_score(points);
     game_controller->complete_question(current_row, current_col);  // Mark question as completed
+
+    // Automatically reveal the answer when the question is resolved correctly
+    reveal_answer();
+
     game_controller->switch_to_next_team();
     
     // Start fade-out transition
@@ -299,6 +307,10 @@ void QuestionDialog::execute_incorrect_action() {
     } else {
         // No more teams can attempt, close the question
         game_controller->complete_question(current_row, current_col);  // Mark question as completed
+
+        // Reveal the answer since no team got it right
+        reveal_answer();
+
         game_controller->switch_to_next_team();  // Move to next team for next question
         
         // Start fade-out transition
