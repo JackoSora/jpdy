@@ -40,6 +40,9 @@ private:
     void setup_managers();
     void reset_ui_state();
     void enable_buttons(bool enabled);
+
+    // Helper to reveal the answer without altering button visibility
+    void reveal_answer();
     
     // Game logic execution
     void execute_correct_action();
